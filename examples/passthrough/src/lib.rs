@@ -1,12 +1,14 @@
-use mongodb_wasm::prelude::*;
+use mongo_wasm::prelude::*;
 
 struct PassthroughPipelineStage {
-    iter: Box<dyn Iterator<Item = Document>>
+    iter: Box<dyn Iterator<Item = Document>>,
 }
 
 impl PipelineStage for PassthroughPipelineStage {
     fn new(document_source: Box<dyn DocumentSource>) -> Self {
-        PassthroughPipelineStage {iter: document_source.iter()}
+        PassthroughPipelineStage {
+            iter: document_source.iter(),
+        }
     }
 
     fn next(&mut self) -> Option<Document> {
@@ -31,10 +33,12 @@ mod tests {
     fn test_single_doc_pipeline() {
         let mut first = Document::new();
         first.insert("hello", "world");
+        let mut pipeline_stage =
+            mock_mongo_pipeline_stage!(PassthroughPipelineStage, first.clone());
 
-        let mut pipeline_stage = mock_mongo_pipeline_stage!(PassthroughPipelineStage, first);
         let result = pipeline_stage.next();
         assert!(result.is_some());
+        assert_eq!(result.unwrap(), first);
 
         let result = pipeline_stage.next();
         assert!(result.is_none());

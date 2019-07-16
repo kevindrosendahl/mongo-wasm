@@ -1,9 +1,9 @@
 pub mod prelude {
-
     pub use super::{
         mock::MockDocumentSource, mock_mongo_pipeline_stage, mongo_pipeline_stage,
         wasm::WasmDocumentSource, DocumentSource, PipelineStage,
     };
+
     pub use bson;
     pub use bson::Document;
 }
@@ -19,7 +19,6 @@ pub trait DocumentSource {
 }
 
 pub mod wasm {
-
     use bson::Document;
 
     #[no_mangle]
@@ -81,7 +80,7 @@ pub mod wasm {
                         }
                         None => 0,
                     }
-			    })
+		        })
             }
         };
     }

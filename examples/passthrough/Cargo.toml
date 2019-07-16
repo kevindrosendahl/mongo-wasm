@@ -1,5 +1,5 @@
 [package]
-name = "basic"
+name = "mongo-wasm-example-passthrough"
 version = "0.1.0"
 authors = ["Kevin Rosendahl <kevindrosendahl@gmail.com>"]
 edition = "2018"
@@ -8,4 +8,4 @@ edition = "2018"
 crate-type = ["cdylib"]
 
 [dependencies]
-mongodb-wasm = { path = '../..', version = '0.1' }
+mongo-wasm = { path = '../..', version = '0.1' }
