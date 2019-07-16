@@ -1,0 +1,11 @@
+[package]
+name = "mongo-wasm-example-project"
+version = "0.1.0"
+authors = ["Kevin Rosendahl <kevindrosendahl@gmail.com>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+mongo-wasm = { path = '../..', version = '0.1' }

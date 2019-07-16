@@ -8,16 +8,24 @@ pub mod prelude {
     pub use bson::Document;
 }
 
+/// Represents a aggregation pipeline stage, which can use its DocumentSource
+/// to retrieve documents from the prior stage, and returns documents via next().
+/// Must be implemented by the user.
 pub trait PipelineStage {
     fn new(document_source: Box<dyn DocumentSource>) -> Self;
 
     fn next(&mut self) -> Option<bson::Document>;
 }
 
+/// Represents the prior stage in the aggregation pipeline. The iterator can be
+/// used to retrieve the next document from the prior stage. Not implemented
+/// by the user.
 pub trait DocumentSource {
     fn iter(&self) -> Box<dyn Iterator<Item = bson::Document>>;
 }
 
+/// Utilities for creating WASM target pipeline stages.
+#[doc(hidden)]
 pub mod wasm {
     use bson::Document;
 
@@ -86,6 +94,8 @@ pub mod wasm {
     }
 }
 
+/// Utilities for testing PipelineStages.
+#[doc(hidden)]
 pub mod mock {
     use bson::Document;
 

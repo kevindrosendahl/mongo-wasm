@@ -181,5 +181,4 @@ mod tests {
 
         assert!(pipeline_stage.next().is_none());
     }
-
 }
