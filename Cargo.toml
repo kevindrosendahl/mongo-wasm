@@ -1,0 +1,8 @@
+[package]
+name = "mongodb-wasm"
+version = "0.1.0"
+authors = ["Kevin Rosendahl <kevindrosendahl@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+bson = { git = "https://github.com/lrlna/bson-rs", branch = "wasm-suport" }
