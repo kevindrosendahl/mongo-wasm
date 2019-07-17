@@ -13,3 +13,5 @@ members = [
 
 [dependencies]
 bson = { git = "https://github.com/lrlna/bson-rs", branch = "wasm-suport" }
+libc = "0.2"
+serde = { version = "1.0", features = ["derive"] }
