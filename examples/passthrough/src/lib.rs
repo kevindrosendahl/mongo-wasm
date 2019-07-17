@@ -5,10 +5,7 @@ struct PassthroughPipelineStage;
 
 impl PipelineStage for PassthroughPipelineStage {
     fn get_next(&mut self, doc: Option<Document>) -> GetNextResult {
-        match doc {
-            Some(doc) => GetNextResult::DocumentReady(doc),
-            None => GetNextResult::EOF,
-        }
+        doc.map_or(GetNextResult::EOF, |doc| GetNextResult::DocumentReady(doc))
     }
 }
 
