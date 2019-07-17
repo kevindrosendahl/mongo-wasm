@@ -12,7 +12,7 @@ pub mod prelude {
 pub enum GetNextResult {
     DocumentReady(bson::Document),
     NeedsNextDocument,
-    EOF,
+    EOF(Option<bson::Document>),
 }
 
 /// Represents a aggregation pipeline stage, which can use its DocumentSource
@@ -88,7 +88,7 @@ pub mod wasm {
                     let (is_eof, next_doc) = match pipeline_stage.borrow_mut().get_next(doc) {
                         GetNextResult::DocumentReady(doc) => (false, Some(doc)),
                         GetNextResult::NeedsNextDocument  => (false, None),
-                        GetNextResult::EOF => (true, None),
+                        GetNextResult::EOF(maybe_doc) => (true, maybe_doc),
                     };
 
                     let result = GetNextResultDocument {

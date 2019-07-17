@@ -110,7 +110,7 @@ impl PipelineStage for StatsPipelineStage {
                     _ => panic!("result did not serialize into a document"),
                 };
 
-                GetNextResult::DocumentReady(results)
+                GetNextResult::EOF(Some(results))
             }
         }
     }
