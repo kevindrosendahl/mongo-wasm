@@ -1,13 +1,12 @@
 use mongo_wasm::prelude::*;
 
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use stats::{Frequencies, OnlineStats};
 
 #[derive(Deserialize, Serialize, Debug)]
 struct User {
     pub name: String,
-    pub birthday: DateTime<Utc>,
+    pub age: f64,
     pub email_address: String,
 }
 
@@ -31,24 +30,18 @@ struct StatsPipelineStage {
     online_stats: OnlineStats,
     num_users: u64,
     oldest_user: Option<User>,
-    now: DateTime<Utc>,
 }
 
 impl StatsPipelineStage {
     fn add_user(&mut self, user: User) {
-        if user.birthday >= self.now {
-            return;
-        }
-
         self.num_users += 1;
-        let age = (self.now.date() - user.birthday.date()).num_weeks() / 52;
-        self.frequencies.add(age);
-        self.online_stats.add(age);
+        self.frequencies.add(user.age as i64);
+        self.online_stats.add(user.age);
 
         match &self.oldest_user {
             None => self.oldest_user = Some(user),
             Some(current_oldest) => {
-                if user.birthday < current_oldest.birthday {
+                if user.age > current_oldest.age {
                     self.oldest_user = Some(user);
                 }
             }
@@ -81,7 +74,6 @@ impl Default for StatsPipelineStage {
             online_stats: OnlineStats::new(),
             num_users: 0,
             oldest_user: None,
-            now: Utc::now(),
         }
     }
 }
@@ -117,3 +109,24 @@ impl PipelineStage for StatsPipelineStage {
 }
 
 mongo_pipeline_stage!(StatsPipelineStage);
+
+#[cfg(test)]
+mod test {
+
+    use super::*;
+
+    #[test]
+    fn test_stage() {
+        let mut stage = StatsPipelineStage::default();
+
+        let mut first = Document::new();
+        first.insert("foo", 1);
+        println!("{:?}", stage.get_next(Some(first)));
+
+        let mut second = Document::new();
+        second.insert("bar", 1);
+        println!("{:?}", stage.get_next(Some(second)));
+
+        println!("{:?}", stage.get_next(None));
+    }
+}

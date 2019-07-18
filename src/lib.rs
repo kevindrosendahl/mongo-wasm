@@ -1,7 +1,7 @@
 pub mod prelude {
     pub use super::{
         mongo_pipeline_stage,
-        wasm::{get_input_doc, return_doc, GetNextResultDocument},
+        wasm::{debug_msg, encode_return_doc, get_input_doc, ReturnDocument},
         GetNextResult, PipelineStage,
     };
 
@@ -9,6 +9,7 @@ pub mod prelude {
     pub use bson::Document;
 }
 
+#[derive(Debug)]
 pub enum GetNextResult {
     DocumentReady(bson::Document),
     NeedsNextDocument,
@@ -28,43 +29,57 @@ pub mod wasm {
 
     use bson::{decode_document, encode_document, Document};
     use serde::{Deserialize, Serialize};
-    pub use std::ffi::c_void;
-    pub use std::io::Cursor;
+    use std::ffi::CString;
+    use std::mem;
+    use std::slice;
+
+    #[no_mangle]
+    extern "C" {
+        fn print(ptr: i32, len: i32);
+    }
+
+    pub fn debug_msg(msg: String) {
+        let bytes = msg.into_bytes();
+        let len = bytes.len();
+        let c_str = CString::new(bytes).unwrap();
+        unsafe { print(c_str.as_ptr() as i32, len as i32) };
+    }
 
     #[derive(Deserialize, Serialize, Debug)]
-    pub struct GetNextResultDocument {
+    pub struct InputDocument {
+        pub doc: Option<bson::Document>,
+    }
+
+    #[derive(Deserialize, Serialize, Debug)]
+    pub struct ReturnDocument {
         pub is_eof: bool,
         pub next_doc: Option<bson::Document>,
     }
 
-    #[no_mangle]
-    extern "C" {
-        fn returnValue(ptr: *mut c_void, len: i32);
-        fn getInputSize() -> i32;
-        fn writeInputToLocation(ptr: *mut c_void);
-    }
-
-    pub fn get_input_doc() -> Option<Document> {
-        // Read input into a buffer.
-        let input_size = unsafe { getInputSize() } as usize;
-        if input_size == 0 {
-            return None;
-        }
-
-        let buf: Vec<u8> = vec![0; input_size];
-        let ptr = buf.as_ptr();
-        unsafe { writeInputToLocation(ptr as *mut c_void) };
+    pub fn get_input_doc(ptr: *const u8) -> Option<Document> {
+        let mut buf = unsafe {
+            // Read length from bson document.
+            let len = *(ptr as *const i32) as usize;
+            slice::from_raw_parts(ptr, len)
+        };
 
         // Convert it into a bson::Document.
-        Some(decode_document(&mut Cursor::new(&buf[..])).expect("failed to decode input document"))
+        let input_document = decode_document(&mut buf).expect("failed to decode input document");
+        let input_document: InputDocument = bson::from_bson(bson::Bson::Document(input_document))
+            .expect("failed to deserialize input document");
+
+        input_document.doc
+
+        // TODO: free the input buffer?
     }
 
-    pub fn return_doc(doc: Document) {
+    pub fn encode_return_doc(doc: Document) -> i32 {
         let mut buf = Vec::new();
         encode_document(&mut buf, &doc).expect("failed to encode result document");
 
-        let ptr = buf.as_ptr() as *mut c_void;
-        unsafe { returnValue(ptr, buf.len() as i32) };
+        let ptr = buf.as_ptr() as i32;
+        mem::forget(buf);
+        ptr
     }
 
     #[macro_export]
@@ -80,9 +95,9 @@ pub mod wasm {
 		    thread_local!(static PIPELINE_STAGE: std::cell::RefCell<$ty> = std::cell::RefCell::new(<$ty>::default()));
 
             #[no_mangle]
-            unsafe extern "C" fn getNext() {
+            unsafe extern "C" fn getNext(ptr: i32) -> i32 {
                 PIPELINE_STAGE.with(|pipeline_stage| {
-                    let doc = get_input_doc();
+                    let doc = get_input_doc(ptr as *const u8);
 
                     // Call get_next() and convert it to the proper response to bubble back to mongod.
                     let (is_eof, next_doc) = match pipeline_stage.borrow_mut().get_next(doc) {
@@ -91,7 +106,7 @@ pub mod wasm {
                         GetNextResult::EOF(maybe_doc) => (true, maybe_doc),
                     };
 
-                    let result = GetNextResultDocument {
+                    let result = ReturnDocument {
                         is_eof, next_doc
                     };
 
@@ -101,7 +116,7 @@ pub mod wasm {
                         _ => panic!("result did not serialize into a document"),
                     };
 
-                    return_doc(result_doc);
+                    encode_return_doc(result_doc)
 		        })
             }
         };

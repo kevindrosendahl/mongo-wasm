@@ -1,5 +1,5 @@
 [package]
-name = "mongo-wasm-example-stats"
+name = "mongo-wasm-example-limit"
 version = "0.1.0"
 authors = ["Kevin Rosendahl <kevindrosendahl@gmail.com>"]
 edition = "2018"
@@ -9,5 +9,3 @@ crate-type = ["cdylib"]
 
 [dependencies]
 mongo-wasm = { path = '../..', version = '0.1' }
-serde = { version = "1.0", features = ["derive"] }
-streaming-stats = "0.2.2"
